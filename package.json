@@ -1,6 +1,9 @@
 {
   "name": "webrtc",
   "version": "1.0.0",
+  "engines": {
+    "node": "12.16.x"
+  },
   "description": "\"# webrtc\"",
   "main": "server.js",
   "dependencies": {
