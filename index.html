@@ -1,10 +1,20 @@
 <!DOCTYPE html>
 <html>
-    <head>
-        <title>Hostarian Chat 0.1</title>
-    </head>
-    <body>
-        <video autoplay id="selfView"></video>
-        <script src="index.js"></script>
-    </body>
+  <head>
+    <title>HostServer</title>
+  </head>
+  <body>
+    <h1>HostServer</h1>
+    <h3 id="server-time"></h3>
+    <script>
+      var HOST = location.origin.replace(/^http/, "ws");
+      var ws = new WebSocket(HOST);
+      var el;
+
+      ws.onmessage = function (event) {
+        el = document.getElementById("server-time");
+        el.innerHTML = "Server time: " + event.data;
+      };
+    </script>
+  </body>
 </html>
