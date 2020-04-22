@@ -6,11 +6,11 @@
     <script>
       // const io = require('socket.io-client')('http://localhost:3000')
       //   const selfView=document.querySelector("video#myVideo");
-    //   let localId = "13839";
-    //   let remoteId = "98518";
+      let localId = prompt("My Id","13839");
+      let remoteId = prompt("Remote Id","98518");
 
-        let localId="98518";
-        let remoteId="13839";
+        // let localId="98518";
+        // let remoteId="13839";
       io = io();
       io.on("connect", (socket) => {
         console.log("sucessfully connected");
@@ -73,7 +73,7 @@
         // don't set srcObject again if it is already set.
         var x=document.getElementById('remoteView');
         console.log(event);
-        // if (remoteView.srcObject) return;
+        if (remoteView.srcObject) return;
         x.srcObject = event.streams[0];
       };
 
