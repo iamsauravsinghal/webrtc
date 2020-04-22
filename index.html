@@ -6,94 +6,157 @@
     <script>
       // const io = require('socket.io-client')('http://localhost:3000')
       //   const selfView=document.querySelector("video#myVideo");
-      let localId = prompt("My Id","13839");
-      let remoteId = prompt("Remote Id","98518");
+        let localId = prompt("My Id","13839");
+        let remoteId = prompt("Remote Id","98518");
+        
+        io = io();
+        io.on("connect", (socket) => {
+          console.log("sucessfully connected");
+          io.emit("userid", localId);
+        });
+        io.on("disconnect", () => console.log("disconnected..."));
+        // socket.emit("messages", "{'saurav','gaurav'}");
+        // socket.on("message", (val) => console.log("Message Recieved: ", val));
+        async function makeCall() {
+          const configuration = {
+            iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
+          };
+          let localStream = await navigator.mediaDevices.getUserMedia({
+            video: {width:320, height:240},
+            audio: true,
+          });
+          selfView.srcObject = localStream;
+          const peerConnection = await new RTCPeerConnection(configuration);
+          localStream.getTracks().forEach((track) => {
+            peerConnection.addTrack(track, localStream);
+          });
+          io.on("message", async (message) => {
+            console.log("answer has come");
+            if (message.answer) {
+              const remoteDesc = new RTCSessionDescription(message.answer);
+              await peerConnection.setRemoteDescription(remoteDesc);
+            }
+          });
+          // Listen for local ICE candidates on the local RTCPeerConnection
+          peerConnection.onicecandidate = (event) => {
+            console.log(event);
+            if (event.candidate) {
+              io.emit("message", {
+                remoteId: remoteId,
+                iceCandidate: event.candidate,
+              });
+            }
+          };
+          peerConnection.ontrack = (event) => {
+          // don't set srcObject again if it is already set.
+          var x=document.getElementById('remoteView');
+          console.log(event);
+          if (remoteView.srcObject) return;
+          x.srcObject = event.streams[0];
+        };
+          const offer = await peerConnection.createOffer();
+          await peerConnection.setLocalDescription(offer);
+          io.emit("message", { remoteId: remoteId, offer: offer });
+        }
 
-        // let localId="98518";
-        // let remoteId="13839";
-      io = io();
-      io.on("connect", (socket) => {
-        console.log("sucessfully connected");
-        io.emit("userid", localId);
-      });
-      io.on("disconnect", () => console.log("disconnected..."));
-      //   socket.emit("messages", "{'saurav','gaurav'}");
-      //   socket.on("message", (val) => console.log("Message Recieved: ", val));
-      async function makeCall() {
-        const configuration = {
+        //Join call function
+        async function joinCall(){
+            const configuration = {
           iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
         };
+        
+        const peerConnection =await new RTCPeerConnection(configuration);
+
         let localStream = await navigator.mediaDevices.getUserMedia({
-          video: true,
-          audio: true,
-        });
-        const peerConnection = await new RTCPeerConnection(configuration);
-        localStream.getTracks().forEach((track) => {
-          peerConnection.addTrack(track, localStream);
+            video: {width:320, height:240},
+            audio: true,
+          });
           selfView.srcObject = localStream;
-        });
+
         io.on("message", async (message) => {
-          console.log("answer has come");
-          if (message.answer) {
-            const remoteDesc = new RTCSessionDescription(message.answer);
-            await peerConnection.setRemoteDescription(remoteDesc);
+          console.log(message);
+          if (message.offer) {
+            peerConnection.setRemoteDescription(
+              new RTCSessionDescription(message.offer)
+            );
+            const answer = await peerConnection.createAnswer();
+            await peerConnection.setLocalDescription(answer);
+            io.emit("message", { remoteId: remoteId, answer: answer });
           }
         });
-        // Listen for local ICE candidates on the local RTCPeerConnection
-        peerConnection.onicecandidate = (event) => {
+
+        peerConnection.ontrack = (event) => {
+          // don't set srcObject again if it is already set.
+          var x=document.getElementById('remoteView');
           console.log(event);
-          if (event.candidate) {
-            io.emit("message", {
-              remoteId: remoteId,
-              iceCandidate: event.candidate,
-            });
-          }
+          if (remoteView.srcObject) return;
+          x.srcObject = event.streams[0];
         };
-        const offer = await peerConnection.createOffer();
-        await peerConnection.setLocalDescription(offer);
-        io.emit("message", { remoteId: remoteId, offer: offer });
-      }
-      const configuration = {
-        iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
-      };
-      const peerConnection = new RTCPeerConnection(configuration);
-      io.on("message", async (message) => {
-        console.log(message);
-        if (message.offer) {
-          peerConnection.setRemoteDescription(
-            new RTCSessionDescription(message.offer)
-          );
-          const answer = await peerConnection.createAnswer();
-          await peerConnection.setLocalDescription(answer);
-          io.emit("message", { remoteId: remoteId, answer: answer });
-        }
-      });
 
-      peerConnection.ontrack = (event) => {
-        // don't set srcObject again if it is already set.
-        var x=document.getElementById('remoteView');
-        console.log(event);
-        if (remoteView.srcObject) return;
-        x.srcObject = event.streams[0];
-      };
-
-      io.on("message", async (message) => {
-        console.log(message);
-        if (message.iceCandidate) {
-          try {
-            await peerConnection.addIceCandidate(message.iceCandidate);
-          } catch (e) {
-            console.error("Error adding received ice candidate", e);
+        io.on("message", async (message) => {
+          console.log(message);
+          if (message.iceCandidate) {
+            try {
+              await peerConnection.addIceCandidate(message.iceCandidate);
+            } catch (e) {
+              console.error("Error adding received ice candidate", e);
+            }
           }
+        });
         }
-      });
-      //   makeCall();
+      //   //   makeCall();
+
+    //   //Set local and remote id
+    //   let localId = prompt("My Id", "13839");
+    //   let remoteId = prompt("Remote Id", "98518");
+
+    //   io = io();
+
+    //   //Connection Event
+    //   io.on("connect", (socket) => {
+    //     console.log("sucessfully connected");
+    //     io.emit("userid", localId);
+    //   });
+    //   //Disconnect Event
+    //   io.on("disconnect", () => console.log("disconnected..."));
+
+    //   const configuration = {
+    //     iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
+    //   };
+
+    //   async function makeCall() {
+    //     const peerConnection = await new RTCPeerConnection(configuration);
+    //     let localStream = await navigator.mediaDevices
+    //       .getUserMedia({ audio: false, video: { width: 320, height: 240 } })
+    //       .then((stream) => (selfView.srcObject = stream));
+    //     const offer = await peerConnection.createOffer();
+    //     await peerConnection.setLocalDescription(offer);
+    //     io.emit('message',{offer:offer});
+    //     io.on('message', async message=>{
+    //         if(message.answer){
+    //             const remoteDesc=await new RTCSessionDescription(message.answer);
+    //             await peerConnection.remoteDescription(remoteDesc);
+    //         }
+    //     });
+    //   }
     </script>
   </head>
   <body>
     <h1>HostServer</h1>
-    <video autoplay id="selfView"></video>
-    <button onclick="makeCall()">Call Now</button>
-    <video autoplay id="remoteView"></video>
+    <table border="true">
+      <thead>
+        <th>Me</th>
+        <th>They</th>
+      </thead>
+      <tbody>
+        <tr>
+          <td><video autoplay id="selfView"></video></td>
+          <td><video autoplay id="remoteView"></video></td>
+        </tr>
+        <tr>
+          <td><button onclick="makeCall()">Call</button><button onclick="joinCall()">Join</button></td>
+        </tr>
+      </tbody>
+    </table>
   </body>
 </html>
