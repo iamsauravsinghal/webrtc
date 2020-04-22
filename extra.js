@@ -6,15 +6,15 @@
     <script>
       // const io = require('socket.io-client')('http://localhost:3000')
       //   const selfView=document.querySelector("video#myVideo");
-    //   let localId = "13839";
-    //   let remoteId = "98518";
+    //   let localId="13839";
+    //   let remoteId="98518";
 
-        let localId="98518";
-        let remoteId="13839";
+      let localId="98518";
+      let remoteId="13839";
       io = io();
       io.on("connect", (socket) => {
         console.log("sucessfully connected");
-        io.emit("userid", localId);
+        io.emit('userid',localId);
       });
       io.on("disconnect", () => console.log("disconnected..."));
       //   socket.emit("messages", "{'saurav','gaurav'}");
@@ -23,15 +23,12 @@
         const configuration = {
           iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
         };
-        let localStream = await navigator.mediaDevices.getUserMedia({
-          video: true,
-          audio: true,
-        });
-        const peerConnection = await new RTCPeerConnection(configuration);
-        localStream.getTracks().forEach((track) => {
-          peerConnection.addTrack(track, localStream);
-          selfView.srcObject = localStream;
-        });
+        let localStream=await navigator.mediaDevices.getUserMedia({video:true,audio:true});
+        const peerConnection =await new RTCPeerConnection(configuration);
+        localStream.getTracks().forEach((track)=>{
+            peerConnection.addTrack(track,localStream);
+            selfView.srcObject=localStream;
+        })
         io.on("message", async (message) => {
           console.log("answer has come");
           if (message.answer) {
@@ -40,18 +37,15 @@
           }
         });
         // Listen for local ICE candidates on the local RTCPeerConnection
-        peerConnection.onicecandidate = (event) => {
-          console.log(event);
+        peerConnection.onicecandidate=(event) => {
+            console.log(event);
           if (event.candidate) {
-            io.emit("message", {
-              remoteId: remoteId,
-              iceCandidate: event.candidate,
-            });
+            io.emit('message',{remoteId:remoteId, iceCandidate: event.candidate });
           }
         };
         const offer = await peerConnection.createOffer();
         await peerConnection.setLocalDescription(offer);
-        io.emit("message", { remoteId: remoteId, offer: offer });
+        io.emit("message", {remoteId:remoteId, offer: offer });
       }
       const configuration = {
         iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
@@ -65,29 +59,21 @@
           );
           const answer = await peerConnection.createAnswer();
           await peerConnection.setLocalDescription(answer);
-          io.emit("message", { remoteId: remoteId, answer: answer });
+          io.emit("message", {remoteId:remoteId, answer: answer });
         }
       });
 
-      peerConnection.ontrack = (event) => {
-        // don't set srcObject again if it is already set.
-        var x=document.getElementById('remoteView');
-        console.log(event);
-        // if (remoteView.srcObject) return;
-        x.srcObject = event.streams[0];
-      };
-
-      io.on("message", async (message) => {
-        console.log(message);
-        if (message.iceCandidate) {
-          try {
+      io.on('message', async message => {
+          console.log(message);
+    if (message.iceCandidate) {
+        try {
             await peerConnection.addIceCandidate(message.iceCandidate);
-          } catch (e) {
-            console.error("Error adding received ice candidate", e);
-          }
+        } catch (e) {
+            console.error('Error adding received ice candidate', e);
         }
-      });
-      //   makeCall();
+    }
+});
+    //   makeCall();
     </script>
   </head>
   <body>
